@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "Ticketing API",
+    "_postman_id": "c1234567-89ab-4def-0123-456789abcdef",
+    "description": "Full workflow: organizer, event, tickets, checkout, payment",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"account_type\": \"business\"\n}"
+        },
+        "url": { "raw": "{{BASE_URL}}/register", "host": ["{{BASE_URL}}"], "path": ["register"] }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}" },
+        "url": { "raw": "{{BASE_URL}}/login", "host": ["{{BASE_URL}}"], "path": ["login"] }
+      }
+    },
+    {
+      "name": "Create Event",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Tech Conference 2025\",\n  \"location\": \"Lagos\",\n  \"description\": \"A tech event\",\n  \"category\": \"Technology\",\n  \"start_time\": \"2025-11-01T09:00:00\",\n  \"end_time\": \"2025-11-01T18:00:00\",\n  \"venue\": \"Lagos Convention Center\"\n}"
+        },
+        "url": { "raw": "{{BASE_URL}}/api/events", "host": ["{{BASE_URL}}"], "path": ["api","events"] }
+      }
+    },
+    {
+      "name": "Create Ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"VIP Pass\",\n  \"description\": \"Access to VIP area\",\n  \"price\": 5000,\n  \"quantity\": 50\n}"
+        },
+        "url": { "raw": "{{BASE_URL}}/api/events/3/tickets", "host": ["{{BASE_URL}}"], "path": ["api","events","3","tickets"] }
+      }
+    },
+    {
+      "name": "List Tickets",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{BASE_URL}}/events/1/tickets", "host": ["{{BASE_URL}}"], "path": ["events","1","tickets"] }
+      }
+    },
+    {
+      "name": "Checkout (Guest/User)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"guest\": {\n    \"name\": \"Alice Guest\",\n    \"email\": \"alice@example.com\",\n    \"phone\": \"+2348012345678\"\n  },\n  \"tickets\": [\n    {\"ticket_id\": 1, \"quantity\": 2}\n  ]\n}"
+        },
+        "url": { "raw": "{{BASE_URL}}/checkout", "host": ["{{BASE_URL}}"], "path": ["checkout"] }
+      }
+    },
+    {
+      "name": "Confirm Payment",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event\": \"charge.success\",\n  \"data\": { \"reference\": \"{{PAYMENT_REF}}\" }\n}"
+        },
+        "url": { "raw": "{{BASE_URL}}/payments/confirm", "host": ["{{BASE_URL}}"], "path": ["payments","confirm"] }
+      }
+    }
+  ]
+}

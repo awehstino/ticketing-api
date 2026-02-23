@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Scanner</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f5f7; color: #111827; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1, h2 { text-align: center; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #111827; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px; background-color: #fff; }
+        button#staff-login-btn { background-color: #4b5563; margin-top: 10px; }
+        button:hover { background-color: #374151; }
+        #scanner-section { display: none; }
+        #qr-reader { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 6px; text-align: center; font-weight: bold; }
+        .success { background-color: #d1fae5; color: #065f46; }
+        .error { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Ticket Scanner</h1>
+
+        <!-- Login Section -->
+        <div id="login-section">
+            <h2>Scanner Access</h2>
+            <form id="login-form">
+                <input type="email" id="email" placeholder="Email" required value="organizer@test.com">
+                <input type="password" id="password" placeholder="Password" required value="password123">
+                <button type="button" id="organizer-login-btn">Login as Organizer</button>
+                <button type="button" id="staff-login-btn">Login as Staff (Email Only)</button>
+            </form>
+        </div>
+
+        <!-- Scanner Section (hidden until login) -->
+        <div id="scanner-section">
+            <div id="event-selection-section">
+                <h2>Select Event</h2>
+                <select id="event-selector"></select>
+            </div>
+            <h2 id="scan-ticket-header" style="display:none;">Scan Ticket</h2>
+            <div id="qr-reader"></div>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script>
+        const loginSection = document.getElementById('login-section');
+        const scannerSection = document.getElementById('scanner-section');
+        const loginForm = document.getElementById('login-form');
+        const resultDiv = document.getElementById('result');
+        const eventSelector = document.getElementById('event-selector');
+        const scanTicketHeader = document.getElementById('scan-ticket-header');
+
+        const organizerLoginBtn = document.getElementById('organizer-login-btn');
+        const staffLoginBtn = document.getElementById('staff-login-btn');
+
+        let jwtToken = null;
+        let html5QrCode = null;
+        let selectedEventId = null;
+
+        // Generic login handler
+        async function handleLogin(endpoint, payload) {
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.token) {
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                jwtToken = data.token;
+                loginSection.style.display = 'none';
+                scannerSection.style.display = 'block';
+                fetchAndDisplayEvents();
+
+            } catch (error) {
+                alert(`Login Error: ${error.message}`);
+            }
+        }
+
+        // 1a. Handle Organizer Login (Email + Password)
+        organizerLoginBtn.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) {
+                alert('Please enter both email and password for organizer login.');
+                return;
+            }
+            handleLogin('/login', { email, password });
+        });
+
+        // 1b. Handle Staff Login (Email only)
+        staffLoginBtn.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            handleLogin('/scanner-login', { email });
+        });
+
+        // 2. Fetch events for the logged-in user and populate the dropdown
+        async function fetchAndDisplayEvents() {
+            try {
+                const response = await fetch('/api/scanner/events', {
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to fetch events');
+
+                eventSelector.innerHTML = '<option value="">-- Please select an event --</option>';
+                data.events.forEach(event => {
+                    // Format the date for better readability
+                    const eventDate = new Date(event.start_time).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.textContent = `${event.title} - ${eventDate}`;
+                    eventSelector.appendChild(option);
+                });
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                loginSection.style.display = 'block';
+                scannerSection.style.display = 'none';
+            }
+        }
+
+        // 3. Listen for event selection and start the scanner
+        eventSelector.addEventListener('change', () => {
+            selectedEventId = eventSelector.value;
+            // Clear previous results when changing events
+            resultDiv.textContent = '';
+            resultDiv.className = '';
+
+            // Stop any existing scanner before starting a new one
+            stopScanner();
+            if (selectedEventId) {
+                scanTicketHeader.style.display = 'block';
+                startScanner();
+            } else {
+                scanTicketHeader.style.display = 'none';
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop();
+                }
+            }
+        });
+
+        // 4. Initialize and Start the QR Code Scanner
+        function startScanner() {
+            // Ensure we don't create multiple instances
+            if (html5QrCode && html5QrCode.isScanning) {
+                return;
+            }
+            html5QrCode = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            // Start scanning. The camera will be requested.
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+        }
+        function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error("Failed to stop scanner:", err));
+            }
+        }
+
+        // 5. Handle a successful scan
+        function onScanSuccess(decodedText, decodedResult) {
+            stopScanner();
+            checkInTicket(decodedText); // decodedText is the ticket_code
+        }
+
+        // Optional: handle scan failure
+        function onScanFailure(error) {
+            // This is called frequently, so we only log non-critical errors.
+            // console.warn(`QR error = ${error}`);
+        }
+
+        // 6. Make the API call to check-in the ticket
+        async function checkInTicket(ticketCode) {
+            if (!selectedEventId) {
+                alert("An event must be selected first.");
+                // Don't restart here, let the user re-select an event
+                return;
+            }
+
+            resultDiv.className = '';
+            resultDiv.textContent = 'Checking in...';
+
+            try {
+                const response = await fetch(`/api/events/${selectedEventId}/checkin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify({ ticket_code: ticketCode })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Check-in failed');
+                }
+
+                // Display success message
+                resultDiv.className = 'success';
+                resultDiv.textContent = `Success! Checked in ${data.attendee.name}.`;
+
+            } catch (error) {
+                // Display error message
+                resultDiv.className = 'error';
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+
+            // Restart the scanner after a short delay
+            setTimeout(() => {
+                resultDiv.textContent = '';
+                resultDiv.className = '';
+                if (selectedEventId) { // Only restart if an event is still selected
+                    startScanner();
+                }
+            }, 3000);
+        }
+    </script>
+
+</body>
+</html>
