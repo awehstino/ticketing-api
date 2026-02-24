@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	// "time"
+	"time"
 
 	"github.com/awehstino/ticketing-api/internal/config"
 
@@ -150,75 +150,96 @@ func SendTicketEmail(order models.Order, item models.OrderItem, qrPath string, p
 	eventName := order.Event.Title
 	eventDateStr := order.Event.StartTime.Format("02 Jan 2006 15:04")
 	priceStr := fmt.Sprintf("₦%.2f", item.UnitPrice)
+	venue := order.Event.Venue
 	ticketCode := item.TicketCode
+	ticketName := "N/A"
+	if item.Ticket != nil {
+		ticketName = item.Ticket.Name
+	}
+	eventURL := fmt.Sprintf("%s/events/%d", config.AppBaseURL, order.EventID)
+	currentYear := time.Now().Year()
 
 	// --- Build modern e-ticket email HTML ---
 	html := fmt.Sprintf(`<!doctype html>
-<html lang="en">
+<html>
 <head>
-<meta charset="utf-8">
-<title>Your Ticket</title>
-<style>
-  body{background:#f4f5f7;margin:0;padding:32px;font-family:'Segoe UI',Arial,sans-serif;color:#111827}
-  .ticket{max-width:720px;margin:auto;background:#fff;border-radius:14px;overflow:hidden;
-    box-shadow:0 8px 30px rgba(0,0,0,0.1);border:1px solid #e5e7eb}
-  .header{background:#111827;color:#fff;padding:24px;text-align:center}
-  .header h1{margin:0;font-size:24px;letter-spacing:0.3px}
-  .content{padding:28px 32px}
-  .info{display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:24px}
-  .info div{margin-bottom:8px}
-  .label{font-weight:600;color:#6b7280;font-size:14px}
-  .value{font-size:15px;color:#111827}
-  .code-box{margin-top:20px;text-align:center;border-top:1px dashed #d1d5db;padding-top:20px}
-  .code-box h3{margin:4px 0;color:#111827;font-size:18px;letter-spacing:1px}
-  .qr{width:150px;height:150px;border-radius:8px;margin-top:10px}
-  .footer{text-align:center;padding:18px;font-size:13px;color:#6b7280;background:#f9fafb;border-top:1px solid #e5e7eb}
-  .btn{display:inline-block;margin-top:12px;background:#111827;color:#fff;
-    text-decoration:none;padding:10px 16px;border-radius:8px;font-size:14px}
-</style>
+    <meta charset="UTF-8">
+    <title>Your Ticket for %s</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #f2f4f6; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+        .email-container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header { background-color: #2a2a2a; color: #ffffff; padding: 40px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { padding: 30px; }
+        .content p { font-size: 16px; line-height: 1.6; color: #333333; }
+        .ticket-details { border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 25px; }
+        .ticket-details-header { background-color: #f9f9f9; padding: 15px; border-bottom: 1px solid #e0e0e0; }
+        .ticket-details-header h2 { margin: 0; font-size: 20px; color: #333; }
+        .ticket-details-body { padding: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .details-text { flex-grow: 1; }
+        .details-text .detail-item { margin-bottom: 12px; font-size: 15px; }
+        .details-text .label { font-weight: bold; color: #555; display: inline-block; width: 100px; }
+        .qr-code { text-align: center; margin-left: 20px; }
+        .qr-code img { width: 120px; height: 120px; }
+        .qr-code p { font-weight: bold; letter-spacing: 1px; margin-top: 5px; font-size: 14px; color: #333; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #888888; border-top: 1px solid #e0e0e0; }
+        .button { display: inline-block; background-color: #111827; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+    </style>
 </head>
 <body>
-  <div class="ticket">
-    <div class="header">
-      <h1>%s</h1>
-      <p style="margin-top:6px;font-size:14px;color:#9ca3af">E-Ticket Confirmation</p>
-    </div>
-    <div class="content">
-      <p style="font-size:16px;">Hi <strong>%s</strong>,</p>
-      <p>Thank you for purchasing your ticket. Below are your ticket details:</p>
-      <div class="info">
-        <div>
-          <div class="label">Event</div>
-          <div class="value">%s</div>
+    <div class="email-container">
+        <div class="header">
+            <h1>Your Ticket is Confirmed!</h1>
         </div>
-        <div>
-          <div class="label">Date & Time</div>
-          <div class="value">%s</div>
-        </div>
-        <div>
-          <div class="label">Ticket Code</div>
-          <div class="value"><strong>%s</strong></div>
-        </div>
-        <div>
-          <div class="label">Price</div>
-          <div class="value">%s</div>
-        </div>
-      </div>
+        <div class="content">
+            <p>Hello %s,</p>
+            <p>Thank you for your purchase. We're excited to see you at <strong>%s</strong>. Please find your ticket details below. You can present this email with the QR code at the entrance.</p>
+            
+            <div class="ticket-details">
+                <div class="ticket-details-header">
+                    <h2>Your E-Ticket</h2>
+                </div>
+                <div class="ticket-details-body">
+                    <div class="details-text">
+                        <div class="detail-item"><span class="label">Event:</span> %s</div>
+                        <div class="detail-item"><span class="label">Date:</span> %s</div>
+                        <div class="detail-item"><span class="label">Venue:</span> %s</div>
+                        <div class="detail-item"><span class="label">Ticket Type:</span> %s</div>
+                        <div class="detail-item"><span class="label">Price:</span> %s</div>
+                    </div>
+                    <div class="qr-code">
+                        <img src="cid:qrcode.png" alt="QR Code">
+                        <p>%s</p>
+                    </div>
+                </div>
+            </div>
 
-      <div class="code-box">
-        <img class="qr" src="cid:qrcode.png" alt="QR Code"><br>
-        <h3>%s</h3>
-        <small style="color:#6b7280;">Scan this code to verify your ticket</small><br>
-        <a class="btn" href="#">View Ticket PDF</a>
-      </div>
+            <p style="text-align:center; margin-top: 30px;">
+                A PDF version of your ticket is also attached to this email for your convenience.
+            </p>
+            <p style="text-align:center;">
+                <a href="%s" class="button">View Event Details</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>&copy; %d Ticketing App. All rights reserved.</p>
+            <p>If you have any questions, please contact our support team.</p>
+        </div>
     </div>
-    <div class="footer">
-      Please bring this ticket (digital or printed) to gain entry. This ticket is personal and non-transferable.
-    </div>
-  </div>
 </body>
 </html>`,
-		eventName, buyerName, eventName, eventDateStr, ticketCode, priceStr, ticketCode)
+		eventName, // for title
+		buyerName,
+		eventName, // for content
+		eventName, // for details
+		eventDateStr,
+		venue,
+		ticketName,
+		priceStr,
+		ticketCode,
+		eventURL,
+		currentYear,
+	)
 
 	// --- Prepare email ---
 	m := gomail.NewMessage()

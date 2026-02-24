@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/awehstino/ticketing-api/internal/database"
+	"github.com/awehstino/ticketing-api/internal/utils"
 	"github.com/awehstino/ticketing-api/internal/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -48,6 +50,9 @@ func main() {
 
 	// Setup application routes
 	routes.SetupRoutes(r)
+
+	// Serve static files from an absolute path
+	r.Static("/public", filepath.Join(utils.ProjectRoot, "public"))
 
 	// Run server
 	r.Run(":8080")

@@ -35,7 +35,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/payments/confirm", controllers.ConfirmPaymentGet)
 
 	// Serve static files (like scanner.html)
-	r.Static("/public", "./public")
 	r.GET("/scanner", func(c *gin.Context) {
 		c.File("./public/scanner.html")
 	})
@@ -47,9 +46,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.GET("/profile", controllers.Profile)
 
 		// Events & tickets (organizer/admin only)
+		auth.GET("/my-events", middleware.RequireRole("organizer", "admin"), controllers.ListMyEvents)
 		auth.POST("/events", middleware.RequireRole("organizer", "admin"), controllers.CreateEvent)
 		auth.PUT("/events/:event_id", middleware.RequireRole("organizer", "admin"), controllers.UpdateEvent)
 		auth.DELETE("/events/:event_id", middleware.RequireRole("organizer", "admin"), controllers.DeleteEvent)
+		auth.PATCH("/events/:event_id/status", middleware.RequireRole("organizer", "admin"), controllers.UpdateEventStatus)
+		auth.PUT("/events/:event_id/status", middleware.RequireRole("organizer", "admin"), controllers.UpdateEventStatus) // Alias for flexibility
 		auth.POST("/events/:event_id/tickets", controllers.CreateTicket)
 		auth.PUT("/tickets/:ticket_id", middleware.RequireRole("organizer", "admin"), controllers.UpdateTicket)
 		auth.DELETE("/tickets/:ticket_id", middleware.RequireRole("organizer", "admin"), controllers.DeleteTicket)

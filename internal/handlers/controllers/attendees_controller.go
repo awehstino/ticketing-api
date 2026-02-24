@@ -39,7 +39,7 @@ func GetAttendeesReport(c *gin.Context) {
 		return
 	}
 
-	var attendees []Attendee
+	attendees := make([]Attendee, 0)
 	for _, item := range items {
 		var name, email string
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/awehstino/ticketing-api/internal/config"
@@ -436,16 +437,24 @@ func fulfillOrderItem(tx *gorm.DB, order *models.Order, item *models.OrderItem) 
 	}
 
 	code := uuid.New().String()
-	qrDir := "public/qrcodes"
-	os.MkdirAll(qrDir, 0755)
-	qrPath := fmt.Sprintf("%s/%s.png", qrDir, code)
-	if err := qrcode.WriteFile(code, qrcode.Medium, 256, qrPath); err != nil {
+	relativeQrDir := filepath.Join("public", "qrcodes")
+	absoluteQrDir := filepath.Join(utils.ProjectRoot, relativeQrDir)
+	os.MkdirAll(absoluteQrDir, 0755)
+
+	qrFilename := fmt.Sprintf("%s.png", code)
+	relativeQrPath := filepath.Join(relativeQrDir, qrFilename)
+	absoluteQrPath := filepath.Join(absoluteQrDir, qrFilename)
+
+	if err := qrcode.WriteFile(code, qrcode.Medium, 256, absoluteQrPath); err != nil {
 		return fmt.Errorf("failed to write QR code: %w", err)
 	}
 
-	pdfDir := "public/tickets"
-	os.MkdirAll(pdfDir, 0755)
-	pdfPath := fmt.Sprintf("%s/ticket_%s.pdf", pdfDir, code)
+	relativePdfDir := filepath.Join("public", "tickets")
+	absolutePdfDir := filepath.Join(utils.ProjectRoot, relativePdfDir)
+	os.MkdirAll(absolutePdfDir, 0755)
+
+	pdfFilename := fmt.Sprintf("ticket_%s.pdf", code)
+	absolutePdfPath := filepath.Join(absolutePdfDir, pdfFilename)
 
 	buyerName := "Guest"
 	if order.User != nil {
@@ -456,12 +465,12 @@ func fulfillOrderItem(tx *gorm.DB, order *models.Order, item *models.OrderItem) 
 	eventDate := order.Event.StartTime.Format("January 2, 2006 3:04 PM")
 	price := fmt.Sprintf("₦%.2f", item.UnitPrice)
 
-	if err := utils.GenerateTicketPDF(order.Event.Title, buyerName, eventDate, order.Event.Venue, price, qrPath, pdfPath); err != nil {
+	if err := utils.GenerateTicketPDF(order.Event.Title, buyerName, eventDate, order.Event.Venue, price, absoluteQrPath, absolutePdfPath); err != nil {
 		return fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
 	item.TicketCode = code
-	item.QRCodePath = qrPath
+	item.QRCodePath = relativeQrPath
 	if err := tx.Save(item).Error; err != nil {
 		return fmt.Errorf("failed to save ticket code to order item: %w", err)
 	}
@@ -477,7 +486,7 @@ func fulfillOrderItem(tx *gorm.DB, order *models.Order, item *models.OrderItem) 
 	orderCopy := *order
 	itemCopy := *item
 	go func() {
-		utils.SendTicketEmail(orderCopy, itemCopy, qrPath, pdfPath)
+		utils.SendTicketEmail(orderCopy, itemCopy, absoluteQrPath, absolutePdfPath)
 	}()
 
 	return nil

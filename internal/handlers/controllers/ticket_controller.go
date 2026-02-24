@@ -63,6 +63,11 @@ func CreateTicket(c *gin.Context) {
 		return
 	}
 
+	// Update event status to 'pending' if it's in 'draft'
+	if event.Status == "draft" {
+		database.DB.Model(&event).Update("status", "pending")
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Ticket created successfully", "ticket": ticket})
 }
 

@@ -3,6 +3,7 @@ package middleware
 import (
 	"strings"
 
+	"github.com/awehstino/ticketing-api/internal/config"
 	"github.com/awehstino/ticketing-api/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -27,7 +28,7 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 
 		claims := &utils.Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return utils.JwtSecret, nil
+			return config.AppJWTConfig.SecretKey, nil
 		})
 
 		// If token is valid, set user info in context

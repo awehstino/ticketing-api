@@ -9,6 +9,7 @@ type Event struct {
 	Title       string    `gorm:"size:255;not null" json:"title"`
 	EventImage  string    `gorm:"size:255" json:"event_image"`
 	EventType   string    `gorm:"size:100" json:"event_type"`
+	Status      string    `gorm:"type:enum('draft','pending','publish');default:'draft'" json:"status"`
 	Location    string    `gorm:"size:255;not null" json:"location"`
 	Description string    `gorm:"type:text" json:"description"`
 	StartTime   time.Time `gorm:"not null" json:"start_time"`

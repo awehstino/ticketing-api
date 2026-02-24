@@ -1,93 +1,611 @@
 {
-  "info": {
-    "name": "Ticketing API",
-    "_postman_id": "c1234567-89ab-4def-0123-456789abcdef",
-    "description": "Full workflow: organizer, event, tickets, checkout, payment",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Register User",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"account_type\": \"business\"\n}"
-        },
-        "url": { "raw": "{{BASE_URL}}/register", "host": ["{{BASE_URL}}"], "path": ["register"] }
-      }
-    },
-    {
-      "name": "Login User",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}" },
-        "url": { "raw": "{{BASE_URL}}/login", "host": ["{{BASE_URL}}"], "path": ["login"] }
-      }
-    },
-    {
-      "name": "Create Event",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"title\": \"Tech Conference 2025\",\n  \"location\": \"Lagos\",\n  \"description\": \"A tech event\",\n  \"category\": \"Technology\",\n  \"start_time\": \"2025-11-01T09:00:00\",\n  \"end_time\": \"2025-11-01T18:00:00\",\n  \"venue\": \"Lagos Convention Center\"\n}"
-        },
-        "url": { "raw": "{{BASE_URL}}/api/events", "host": ["{{BASE_URL}}"], "path": ["api","events"] }
-      }
-    },
-    {
-      "name": "Create Ticket",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"VIP Pass\",\n  \"description\": \"Access to VIP area\",\n  \"price\": 5000,\n  \"quantity\": 50\n}"
-        },
-        "url": { "raw": "{{BASE_URL}}/api/events/3/tickets", "host": ["{{BASE_URL}}"], "path": ["api","events","3","tickets"] }
-      }
-    },
-    {
-      "name": "List Tickets",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": { "raw": "{{BASE_URL}}/events/1/tickets", "host": ["{{BASE_URL}}"], "path": ["events","1","tickets"] }
-      }
-    },
-    {
-      "name": "Checkout (Guest/User)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"guest\": {\n    \"name\": \"Alice Guest\",\n    \"email\": \"alice@example.com\",\n    \"phone\": \"+2348012345678\"\n  },\n  \"tickets\": [\n    {\"ticket_id\": 1, \"quantity\": 2}\n  ]\n}"
-        },
-        "url": { "raw": "{{BASE_URL}}/checkout", "host": ["{{BASE_URL}}"], "path": ["checkout"] }
-      }
-    },
-    {
-      "name": "Confirm Payment",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"event\": \"charge.success\",\n  \"data\": { \"reference\": \"{{PAYMENT_REF}}\" }\n}"
-        },
-        "url": { "raw": "{{BASE_URL}}/payments/confirm", "host": ["{{BASE_URL}}"], "path": ["payments","confirm"] }
-      }
-    }
-  ]
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d7",
+		"name": "Ticketing API - v3",
+		"description": "Comprehensive collection for the Ticketing API, including file uploads and status management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Endpoints for user registration, login, and profile management.",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Organizer\",\n    \"email\": \"organizer@example.com\",\n    \"password\": \"password123\",\n    \"account_type\": \"business\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful login\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Token is present\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.empty;",
+									"    pm.environment.set(\"jwt_token\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"organizer@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Scanner Login (Email Only)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"staff@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/scanner-login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"scanner-login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Events",
+			"description": "Manage events, including creation, status updates, and viewing.",
+			"item": [
+				{
+					"name": "List Events (Public Discover Page)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List My Events (Organizer Dashboard)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/my-events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"my-events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Event (with Image)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Event created successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Set event_id variable\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.event.id).to.not.be.null;",
+									"    pm.environment.set(\"event_id\", jsonData.event.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Annual Tech Summit",
+									"type": "text"
+								},
+								{
+									"key": "location",
+									"value": "Virtual",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Join us for the biggest tech event of the year.",
+									"type": "text"
+								},
+								{
+									"key": "category_id",
+									"value": "9",
+									"type": "text"
+								},
+								{
+									"key": "event_type",
+									"value": "Conference",
+									"type": "text"
+								},
+								{
+									"key": "start_time",
+									"value": "2024-10-20T09:00:00Z",
+									"type": "text"
+								},
+								{
+									"key": "end_time",
+									"value": "2024-10-22T17:00:00Z",
+									"type": "text"
+								},
+								{
+									"key": "venue",
+									"value": "Online",
+									"type": "text"
+								},
+								{
+									"key": "event_image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Event Status (Publish)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"publish\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events/{{event_id}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"events",
+								"{{event_id}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tickets",
+			"description": "Manage tickets for an event.",
+			"item": [
+				{
+					"name": "Create Ticket for Event",
+					"description": "This will move the event status from 'draft' to 'pending'.",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"General Admission\",\n    \"description\": \"Access to all keynotes and sessions.\",\n    \"type\": \"paid\",\n    \"price\": 199.00,\n    \"quantity\": 500\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events/{{event_id}}/tickets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"events",
+								"{{event_id}}",
+								"tickets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Tickets for Event (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/events/{{event_id}}/tickets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"tickets"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"description": "Manage event categories.",
+			"item": [
+				{
+					"name": "List Categories (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Workshops\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Checkout & Payments",
+			"description": "Endpoints for purchasing tickets.",
+			"item": [
+				{
+					"name": "Checkout (Guest)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"guest\": {\n        \"name\": \"John Doe\",\n        \"email\": \"john.doe@example.com\"\n    },\n    \"tickets\": [\n        {\n            \"ticket_id\": {{ticket_id}},\n            \"quantity\": 2\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/checkout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Scanner & Check-in",
+			"description": "Endpoints for event staff to manage attendees.",
+			"item": [
+				{
+					"name": "Get Scanner Events",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/scanner/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"scanner",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check-in Ticket",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ticket_code\": \"{{ticket_code}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events/{{event_id}}/checkin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"events",
+								"{{event_id}}",
+								"checkin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendees Report",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events/{{event_id}}/attendees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"events",
+								"{{event_id}}",
+								"attendees"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "jwt_token",
+			"value": ""
+		},
+		{
+			"key": "event_id",
+			"value": ""
+		},
+		{
+			"key": "ticket_id",
+			"value": ""
+		},
+		{
+			"key": "ticket_code",
+			"value": ""
+		}
+	]
 }

@@ -77,9 +77,9 @@ func GetScannerEvents(c *gin.Context) {
 
 	switch role {
 	case "admin":
-		err = database.DB.Order("start_time desc").Find(&events).Error
+		err = database.DB.Preload("Category").Order("start_time desc").Find(&events).Error
 	case "organizer":
-		err = database.DB.Where("organizer_id = ?", userID).Order("start_time desc").Find(&events).Error
+		err = database.DB.Preload("Category").Where("organizer_id = ?", userID).Order("start_time desc").Find(&events).Error
 	default: // "staff" or other roles
 		// Find all event staff records for the user
 		var staffAssignments []models.EventStaff
@@ -89,21 +89,26 @@ func GetScannerEvents(c *gin.Context) {
 		for _, assignment := range staffAssignments {
 			eventIDs = append(eventIDs, assignment.EventID)
 		}
-		err = database.DB.Where("id IN ?", eventIDs).Order("start_time desc").Find(&events).Error
+		err = database.DB.Preload("Category").Where("id IN ?", eventIDs).Order("start_time desc").Find(&events).Error
 	}
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch events"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"events": events})
+
+	eventResponses := make([]EventResponse, 0)
+	for _, event := range events {
+		eventResponses = append(eventResponses, toEventResponse(event))
+	}
+	c.JSON(http.StatusOK, gin.H{"events": eventResponses})
 }
 
 // ListEventStaff - list staff for event
 func ListEventStaff(c *gin.Context) {
 	eventID := c.Param("event_id")
 
-	var staff []models.EventStaff
+	staff := make([]models.EventStaff, 0)
 	if err := database.DB.Preload("User").Where("event_id = ?", eventID).Find(&staff).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff"})
 		return
